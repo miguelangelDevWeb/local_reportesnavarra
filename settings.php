@@ -298,6 +298,166 @@ if ($hassiteconfig) {
             PARAM_TEXT
         ));
 
+        $settings->add(new admin_setting_heading(
+            'local_reportesnavarra/categories_name_heading',
+            'Configuración de nombres de las categorias',
+            'Configuración dinámica de los nombres de las categorias del calificador.'
+        ));
+
+        // Add a setting field to the settings for this page
+        $settings->add(new admin_setting_configtext(
+            // This is the reference you will use to your configuration
+            'local_reportesnavarra/1erTrimestre',
+
+            // This is the friendly title for the config, which will be displayed
+            '1er Trimestre:',
+
+            // This is helper text for this config field
+            'Nombre del 1er Trimestre',
+
+            // This is the default value
+            '1er Trimestre',
+
+            // This is the type of Parameter this config is
+            PARAM_TEXT
+        ));
+
+        $settings->add(new admin_setting_configtext(
+            // This is the reference you will use to your configuration
+            'local_reportesnavarra/1erTrimestre1P',
+
+            // This is the friendly title for the config, which will be displayed
+            '1er Trimestre - 1er Parcial:',
+
+            // This is helper text for this config field
+            'Nombre del 1er Trimestre - 1er Parcial',
+
+            // This is the default value
+            '1er Parcial',
+
+            // This is the type of Parameter this config is
+            PARAM_TEXT
+        ));
+
+        $settings->add(new admin_setting_configtext(
+            // This is the reference you will use to your configuration
+            'local_reportesnavarra/1erTrimestre2P',
+
+            // This is the friendly title for the config, which will be displayed
+            '1er Trimestre - 2do Parcial:',
+
+            // This is helper text for this config field
+            'Nombre del 1er Trimestre - 2do Parcial',
+
+            // This is the default value
+            '2do Parcial',
+
+            // This is the type of Parameter this config is
+            PARAM_TEXT
+        ));
+
+        $settings->add(new admin_setting_configtext(
+            // This is the reference you will use to your configuration
+            'local_reportesnavarra/2doTrimestre',
+
+            // This is the friendly title for the config, which will be displayed
+            '2do Trimestre:',
+
+            // This is helper text for this config field
+            'Nombre del 2do Trimestre',
+
+            // This is the default value
+            '2do Trimestre',
+
+            // This is the type of Parameter this config is
+            PARAM_TEXT
+        ));
+
+        $settings->add(new admin_setting_configtext(
+            // This is the reference you will use to your configuration
+            'local_reportesnavarra/2doTrimestre3P',
+
+            // This is the friendly title for the config, which will be displayed
+            '2do Trimestre - 3er Parcial:',
+
+            // This is helper text for this config field
+            'Nombre del 3er Parcial',
+
+            // This is the default value
+            '3er Parcial',
+
+            // This is the type of Parameter this config is
+            PARAM_TEXT
+        ));
+
+        $settings->add(new admin_setting_configtext(
+            // This is the reference you will use to your configuration
+            'local_reportesnavarra/2doTrimestre4P',
+
+            // This is the friendly title for the config, which will be displayed
+            '2do Trimestre - 4to Parcial:',
+
+            // This is helper text for this config field
+            'Nombre del 4to Parcial',
+
+            // This is the default value
+            '4to Parcial',
+
+            // This is the type of Parameter this config is
+            PARAM_TEXT
+        ));
+
+        $settings->add(new admin_setting_configtext(
+            // This is the reference you will use to your configuration
+            'local_reportesnavarra/3erTrimestre',
+
+            // This is the friendly title for the config, which will be displayed
+            '3er Trimestre:',
+
+            // This is helper text for this config field
+            'Nombre del 3er Trimestre',
+
+            // This is the default value
+            '3er Trimestre',
+
+            // This is the type of Parameter this config is
+            PARAM_TEXT
+        ));
+
+        $settings->add(new admin_setting_configtext(
+            // This is the reference you will use to your configuration
+            'local_reportesnavarra/3erTrimestre5P',
+
+            // This is the friendly title for the config, which will be displayed
+            '3er Trimestre - 5to Parcial:',
+
+            // This is helper text for this config field
+            'Nombre del 3er Trimestre - 5to Parcial',
+
+            // This is the default value
+            '5to Parcial',
+
+            // This is the type of Parameter this config is
+            PARAM_TEXT
+        ));
+
+        $settings->add(new admin_setting_configtext(
+            // This is the reference you will use to your configuration
+            'local_reportesnavarra/3erTrimestre6P',
+
+            // This is the friendly title for the config, which will be displayed
+            '3er Trimestre - 6to Parcial:',
+
+            // This is helper text for this config field
+            'Nombre del 3er Trimestre - 6to Parcial',
+
+            // This is the default value
+            '6to Parcial',
+
+            // This is the type of Parameter this config is
+            PARAM_TEXT
+        ));
+
         // Configuraciones de asisntencia
         $settings->add(new admin_setting_heading(
             'local_reportesnavarra/attendance_heading',
