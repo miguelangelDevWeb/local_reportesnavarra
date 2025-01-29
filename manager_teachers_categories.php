@@ -43,7 +43,7 @@ $PAGE->set_heading(get_string('form_heading_manager_categories', 'local_reportes
 $mform = new local_reportesnavarra_manager_users_categories_form(); 
 $isadmin = is_siteadmin();
 
-if ($isadmin || has_capability('local/reportesnavarra:administration', context_system::instance())) {
+if ($isadmin || has_capability('local/reportesnavarra:administration_teacher_categories', context_system::instance())) {
 
     // Si el formulario es enviado y validado.
     if ($mform->is_submitted() && $mform->is_validated()) {
@@ -58,14 +58,14 @@ if ($isadmin || has_capability('local/reportesnavarra:administration', context_s
             echo $OUTPUT->notification(get_string('error_no_selection', 'local_reportesnavarra'), \core\output\notification::NOTIFY_WARNING);
             
         } else {
-            local_reportesnavarra_save_user_category($users, $categories);
+            local_reportesnavarra_save_teacher_category($users, $categories);
             echo $OUTPUT->notification(get_string('success_save', 'local_reportesnavarra'), \core\output\notification::NOTIFY_SUCCESS);
         }
     }
     $fields = "u.id, u.firstname, u.lastname, u.email, uc.userid, uc.id as coursecategoryid, cc.name";
     $conditions = ""; //u.id = ?
     $params = []; 
-    $userscategories = local_reportesnavarra_get_users_categories($fields, $conditions, $params);
+    $userscategories = local_reportesnavarra_get_teachers_categories($fields, $conditions, $params);
     if (empty($userscategories)) {
         echo $OUTPUT->notification(get_string('no_data', 'local_reportesnavarra'), \core\output\notification::NOTIFY_WARNING);
     } else {

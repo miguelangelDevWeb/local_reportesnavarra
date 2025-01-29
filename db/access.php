@@ -82,5 +82,14 @@ $capabilities = [
             'teacher' => CAP_PROHIBIT,
         ],
         
+    ],
+    'local/reportesnavarra:administration_register_teacher' => [
+        'riskbitmask' => RISK_PERSONAL,
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => [
+            'teacher' => CAP_PROHIBIT,
+        ],
+        
     ]
 ];

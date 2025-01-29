@@ -147,6 +147,45 @@ function local_reportesnavarra_save_user_category($users, $categories) {
   }
 }
 
+function local_reportesnavarra_save_teacher_category($users, $categories) {
+    global $DB;
+  // Iniciar una transacción.
+  $transaction = $DB->start_delegated_transaction();
+
+  try {
+      foreach ($users as $userid) {
+          foreach ($categories as $categoryid) {
+              if (!is_numeric($userid) || !is_numeric($categoryid)) {
+                  throw new moodle_exception('invalid_parameter', 'local_reportesnavarra', '', null, 'UserID o CategoryID no son válidos.');
+              }
+
+              $record = new stdClass();
+              $record->userid = $userid;
+              $record->categoryid = $categoryid;
+
+              $DB->insert_record('local_teacher_category', $record);
+          }
+      }
+
+      // Confirmar la transacción si todo es exitoso.
+      $transaction->allow_commit();
+
+      return true;
+
+  } catch (dml_exception $e) {
+      // Cancelar la transacción en caso de error.
+      $transaction->rollback($e);
+      debugging('Error en la base de datos: ' . $e->getMessage(), DEBUG_DEVELOPER);
+      return false;
+
+  } catch (Exception $e) {
+      // Manejar otros errores.
+      $transaction->rollback($e);
+      debugging('Error inesperado: ' . $e->getMessage(), DEBUG_DEVELOPER);
+      return false;
+  }
+}
+
 function local_reportesnavarra_get_users_categories($fields = '*', $conditions = '', $params = []) {
     global $DB;
 
@@ -156,6 +195,27 @@ function local_reportesnavarra_get_users_categories($fields = '*', $conditions =
 
     $sql = "SELECT $fields 
             FROM {local_user_category} uc
+            INNER JOIN {user} u ON u.id = uc.userid
+            INNER JOIN {course_categories} cc ON cc.id = uc.categoryid";
+
+    if ($conditions !== '') {
+        $sql .= " WHERE $conditions";
+    }
+
+    $sql .= " ORDER BY u.firstname";
+
+    return $DB->get_recordset_sql($sql, $params);
+}
+
+function local_reportesnavarra_get_teachers_categories($fields = '*', $conditions = '', $params = []) {
+    global $DB;
+
+    if (empty($fields)) {
+        $fields = '*';
+    }
+
+    $sql = "SELECT $fields 
+            FROM {local_teacher_category} uc
             INNER JOIN {user} u ON u.id = uc.userid
             INNER JOIN {course_categories} cc ON cc.id = uc.categoryid";
 
@@ -227,7 +287,7 @@ function local_reportesnavarra_get_table_categories($categories) {
    ];
 
    foreach ($categories as $category) {
-       $view_url_add_teacher = new moodle_url('/local/reportesnavarra/view_add_teacher.php', ['categoryid' => $category->categoryid]);
+       $view_url_add_teacher = new moodle_url('/local/reportesnavarra/manager_teachers_categories.php', ['categoryid' => $category->categoryid]);
        $view_url_register = new moodle_url('/local/reportesnavarra/view_register_attendance.php', ['categoryid' => $category->categoryid]);
        $view_url_view_register = new moodle_url('/local/reportesnavarra/view_users_attendance.php', ['categoryid' => $category->categoryid]);
        $link_register = "<i class='fa fa-plus'></i>";
