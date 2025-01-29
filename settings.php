@@ -123,7 +123,7 @@ if ($hassiteconfig) {
         ));
         $settings->add(new admin_setting_configtext(
             // This is the reference you will use to your configuration
-            'local_reportesnavarra/yearSchool',
+            'local_reportesnavarra/signature',
 
             // This is the friendly title for the config, which will be displayed
             'Firma:',
