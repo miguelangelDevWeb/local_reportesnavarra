@@ -138,6 +138,40 @@ if ($hassiteconfig) {
             PARAM_TEXT
         ));
 
+        $settings->add(new admin_setting_configtext(
+            // This is the reference you will use to your configuration
+            'local_reportesnavarra/day',
+
+            // This is the friendly title for the config, which will be displayed
+            'Jornada:',
+
+            // This is helper text for this config field
+            'Jornada de la unidad educativa',
+
+            // This is the default value
+            'MATUTINA',
+
+            // This is the type of Parameter this config is
+            PARAM_TEXT
+        ));
+
+        $settings->add(new admin_setting_configtext(
+            // This is the reference you will use to your configuration
+            'local_reportesnavarra/profesional_title',
+
+            // This is the friendly title for the config, which will be displayed
+            'Titulo profesional:',
+
+            // This is helper text for this config field
+            'Abreviación del títlulo profesional',
+
+            // This is the default value
+            'Lic.',
+
+            // This is the type of Parameter this config is
+            PARAM_TEXT
+        ));
+
         $settings->add(new admin_setting_heading(
             'local_reportesnavarra/general_date_range_heading',
             'Configuración de rangos de fechas',
@@ -307,7 +341,7 @@ if ($hassiteconfig) {
         // Add a setting field to the settings for this page
         $settings->add(new admin_setting_configtext(
             // This is the reference you will use to your configuration
-            'local_reportesnavarra/1erTrimestre',
+            'local_reportesnavarra/first_trimester',
 
             // This is the friendly title for the config, which will be displayed
             '1er Trimestre:',
@@ -324,7 +358,7 @@ if ($hassiteconfig) {
 
         $settings->add(new admin_setting_configtext(
             // This is the reference you will use to your configuration
-            'local_reportesnavarra/1erTrimestre1P',
+            'local_reportesnavarra/first_partial',
 
             // This is the friendly title for the config, which will be displayed
             '1er Trimestre - 1er Parcial:',
@@ -341,7 +375,7 @@ if ($hassiteconfig) {
 
         $settings->add(new admin_setting_configtext(
             // This is the reference you will use to your configuration
-            'local_reportesnavarra/1erTrimestre2P',
+            'local_reportesnavarra/second_partial',
 
             // This is the friendly title for the config, which will be displayed
             '1er Trimestre - 2do Parcial:',
@@ -358,7 +392,7 @@ if ($hassiteconfig) {
 
         $settings->add(new admin_setting_configtext(
             // This is the reference you will use to your configuration
-            'local_reportesnavarra/2doTrimestre',
+            'local_reportesnavarra/second_trimester',
 
             // This is the friendly title for the config, which will be displayed
             '2do Trimestre:',
@@ -375,7 +409,7 @@ if ($hassiteconfig) {
 
         $settings->add(new admin_setting_configtext(
             // This is the reference you will use to your configuration
-            'local_reportesnavarra/2doTrimestre3P',
+            'local_reportesnavarra/third_partial',
 
             // This is the friendly title for the config, which will be displayed
             '2do Trimestre - 3er Parcial:',
@@ -392,7 +426,7 @@ if ($hassiteconfig) {
 
         $settings->add(new admin_setting_configtext(
             // This is the reference you will use to your configuration
-            'local_reportesnavarra/2doTrimestre4P',
+            'local_reportesnavarra/fourth_partial',
 
             // This is the friendly title for the config, which will be displayed
             '2do Trimestre - 4to Parcial:',
@@ -409,7 +443,7 @@ if ($hassiteconfig) {
 
         $settings->add(new admin_setting_configtext(
             // This is the reference you will use to your configuration
-            'local_reportesnavarra/3erTrimestre',
+            'local_reportesnavarra/third_trimester',
 
             // This is the friendly title for the config, which will be displayed
             '3er Trimestre:',
@@ -426,7 +460,7 @@ if ($hassiteconfig) {
 
         $settings->add(new admin_setting_configtext(
             // This is the reference you will use to your configuration
-            'local_reportesnavarra/3erTrimestre5P',
+            'local_reportesnavarra/fifth_partial',
 
             // This is the friendly title for the config, which will be displayed
             '3er Trimestre - 5to Parcial:',
@@ -443,7 +477,7 @@ if ($hassiteconfig) {
 
         $settings->add(new admin_setting_configtext(
             // This is the reference you will use to your configuration
-            'local_reportesnavarra/3erTrimestre6P',
+            'local_reportesnavarra/sixth_partial',
 
             // This is the friendly title for the config, which will be displayed
             '3er Trimestre - 6to Parcial:',
@@ -453,6 +487,166 @@ if ($hassiteconfig) {
 
             // This is the default value
             '6to Parcial',
+
+            // This is the type of Parameter this config is
+            PARAM_TEXT
+        ));
+
+        $settings->add(new admin_setting_heading(
+            'local_reportesnavarra/title_certificate_heading',
+            'Configuración de titulos del certificado',
+            'Configuración dinámica de los titulos de los certificados.'
+        ));
+
+        // Add a setting field to the settings for this page
+        $settings->add(new admin_setting_configtext(
+            // This is the reference you will use to your configuration
+            'local_reportesnavarra/first_trimester_title',
+
+            // This is the friendly title for the config, which will be displayed
+            '1er Trimestre:',
+
+            // This is helper text for this config field
+            'Nombre del 1er Trimestre',
+
+            // This is the default value
+            'TRIMESTRE I',
+
+            // This is the type of Parameter this config is
+            PARAM_TEXT
+        ));
+
+        $settings->add(new admin_setting_configtext(
+            // This is the reference you will use to your configuration
+            'local_reportesnavarra/first_partial_title',
+
+            // This is the friendly title for the config, which will be displayed
+            '1er Parcial:',
+
+            // This is helper text for this config field
+            'Nombre del 1er Trimestre - 1er Parcial',
+
+            // This is the default value
+            'PARCIAL 1',
+
+            // This is the type of Parameter this config is
+            PARAM_TEXT
+        ));
+
+        $settings->add(new admin_setting_configtext(
+            // This is the reference you will use to your configuration
+            'local_reportesnavarra/second_partial_title',
+
+            // This is the friendly title for the config, which will be displayed
+            '2do Parcial:',
+
+            // This is helper text for this config field
+            'Nombre del 1er Trimestre - 2do Parcial',
+
+            // This is the default value
+            'PARCIAL II',
+
+            // This is the type of Parameter this config is
+            PARAM_TEXT
+        ));
+
+        $settings->add(new admin_setting_configtext(
+            // This is the reference you will use to your configuration
+            'local_reportesnavarra/second_trimester_title',
+
+            // This is the friendly title for the config, which will be displayed
+            '2do Trimestre:',
+
+            // This is helper text for this config field
+            'Nombre del 2do Trimestre',
+
+            // This is the default value
+            'TRIMESTRE II',
+
+            // This is the type of Parameter this config is
+            PARAM_TEXT
+        ));
+
+        $settings->add(new admin_setting_configtext(
+            // This is the reference you will use to your configuration
+            'local_reportesnavarra/third_partial_title',
+
+            // This is the friendly title for the config, which will be displayed
+            '3er Parcial:',
+
+            // This is helper text for this config field
+            'Nombre del 3er Parcial',
+
+            // This is the default value
+            'PARCIAL III',
+
+            // This is the type of Parameter this config is
+            PARAM_TEXT
+        ));
+
+        $settings->add(new admin_setting_configtext(
+            // This is the reference you will use to your configuration
+            'local_reportesnavarra/fourth_partial_title',
+
+            // This is the friendly title for the config, which will be displayed
+            '4to Parcial:',
+
+            // This is helper text for this config field
+            'Nombre del 4to Parcial',
+
+            // This is the default value
+            'PARCIAL IV',
+
+            // This is the type of Parameter this config is
+            PARAM_TEXT
+        ));
+
+        $settings->add(new admin_setting_configtext(
+            // This is the reference you will use to your configuration
+            'local_reportesnavarra/third_trimester_title',
+
+            // This is the friendly title for the config, which will be displayed
+            '3er Trimestre:',
+
+            // This is helper text for this config field
+            'Nombre del 3er Trimestre',
+
+            // This is the default value
+            'TRIMESTRE III',
+
+            // This is the type of Parameter this config is
+            PARAM_TEXT
+        ));
+
+        $settings->add(new admin_setting_configtext(
+            // This is the reference you will use to your configuration
+            'local_reportesnavarra/fifth_partial_title',
+
+            // This is the friendly title for the config, which will be displayed
+            '5to Parcial:',
+
+            // This is helper text for this config field
+            'Nombre del 5to Parcial',
+
+            // This is the default value
+            'PARCIAL V',
+
+            // This is the type of Parameter this config is
+            PARAM_TEXT
+        ));
+
+        $settings->add(new admin_setting_configtext(
+            // This is the reference you will use to your configuration
+            'local_reportesnavarra/sixth_partial_title',
+
+            // This is the friendly title for the config, which will be displayed
+            '6to Parcial:',
+
+            // This is helper text for this config field
+            'Nombre del  6to Parcial',
+
+            // This is the default value
+            'PARCIAL VI',
 
             // This is the type of Parameter this config is
             PARAM_TEXT
@@ -536,7 +730,7 @@ if ($hassiteconfig) {
 
         // B
         $settings->add(new admin_setting_configtext(
-            'local_reportesnavarra/grade_b',
+            'local_reportesnavarra/grade_bminus',
             'B-',
             'Rango para la calificación B',
             '6.01-7',
@@ -596,5 +790,49 @@ if ($hassiteconfig) {
             '0.01-1',
             PARAM_TEXT
         ));
+
+          // Configuraciones para la nota comportamental
+          $settings->add(new admin_setting_heading(
+            'local_reportesnavarra/behavior_grade_heading',
+            'Escala de la nota comportamental',
+            'Configura los rangos dinámicamente.'
+        ));
+
+        // A+
+        $settings->add(new admin_setting_configtext(
+            'local_reportesnavarra/always',
+            'Siempre:',
+            'Rango para la calificación Siempre',
+            '9.01-10',
+            PARAM_TEXT
+        ));
+
+        // A-
+        $settings->add(new admin_setting_configtext(
+            'local_reportesnavarra/frequently',
+            'Frecuentemente:',
+            'Rango para la calificación frecuente',
+            '7-9',
+            PARAM_TEXT
+        ));
+
+        // B+
+        $settings->add(new admin_setting_configtext(
+            'local_reportesnavarra/occasionally',
+            'Ocacionalmente:',
+            'Rango para la calificación ocacional',
+            '5-6.99',
+            PARAM_TEXT
+        ));
+
+        // B
+        $settings->add(new admin_setting_configtext(
+            'local_reportesnavarra/never',
+            'Nunca:',
+            'Rango para la calificación Nunca',
+            '0-4.99',
+            PARAM_TEXT
+        ));
     }
+    
 }

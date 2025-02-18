@@ -8,13 +8,13 @@ $isadmin = is_siteadmin();
 global $DB, $PAGE, $OUTPUT;
 
 // Configurar la página
-$PAGE->set_url(new moodle_url('/local/reportesnavarra/edit.php'));
+$PAGE->set_url(new moodle_url('/local/reportesnavarra/index.php'));
 $PAGE->set_context(context_system::instance());
 $PAGE->set_title(get_string('attendance_list', 'local_reportesnavarra'));
-$PAGE->set_heading(get_string('attendance_list', 'local_reportesnavarra'));
+// $PAGE->set_heading(get_string('attendance_list', 'local_reportesnavarra'));
 
 $PAGE->navbar->add(get_string('list_categories', 'local_reportesnavarra'), new moodle_url('/local/reportesnavarra/view_category.php'));
-$PAGE->navbar->add(get_string('attendance_list', 'local_reportesnavarra'));
+$PAGE->navbar->add(get_string('attendance_list', 'local_reportesnavarra'), new moodle_url('/local/reportesnavarra/view_users_attendance.php'));
 
 // Parámetros
 $categoryid = required_param('categoryid', PARAM_INT); // ID de la categoría.

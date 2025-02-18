@@ -9,7 +9,6 @@ $context = context_system::instance();
 $PAGE->set_context($context);
 $PAGE->set_url(new moodle_url('/local/reportesnavarra/'));
 $PAGE->set_title(get_string('list_categories', 'local_reportesnavarra'));
-$PAGE->set_heading(get_string('list_categories', 'local_reportesnavarra'));
 
 echo $OUTPUT->header();
 echo html_writer::tag('h2', get_string('list_categories_heading', 'local_reportesnavarra'));

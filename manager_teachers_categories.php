@@ -23,8 +23,6 @@
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-use Google\Service\Classroom\Teacher;
-
 require_once('../../config.php');
 require_once($CFG->dirroot. '/local/reportesnavarra/lib.php');
 require_once($CFG->dirroot. '/local/reportesnavarra/forms/manager_users_categories_form.php');
@@ -37,8 +35,10 @@ require_login(); // Asegúrate de que el usuario está autenticado.
 
 $PAGE->set_context($context);
 $PAGE->set_url(new moodle_url('/local/reportesnavarra/index.php'));
-$PAGE->set_title(get_string('form_title_manager_categories', 'local_reportesnavarra'));
-$PAGE->set_heading(get_string('form_heading_manager_categories', 'local_reportesnavarra'));
+$PAGE->set_title(get_string('form_heading_teacher_categories', 'local_reportesnavarra'));
+
+$PAGE->navbar->add(get_string('list_categories', 'local_reportesnavarra'), new moodle_url('/local/reportesnavarra/view_category.php'));
+$PAGE->navbar->add('Asignación de profesores a categorías', new moodle_url('/local/reportesnavarra/manager_teachers_categories.php'));
 
 $mform = new local_reportesnavarra_manager_users_categories_form(); 
 $isadmin = is_siteadmin();
@@ -81,7 +81,7 @@ if ($isadmin || has_capability('local/reportesnavarra:administration_teacher_cat
 
 
 echo $OUTPUT->header(); 
-echo html_writer::tag('h2', get_string('form_heading_manager_categories', 'local_reportesnavarra'));
+echo html_writer::tag('h2', get_string('form_heading_teacher_categories', 'local_reportesnavarra'));
 $mform->display(); 
 echo $outputhtml;
 echo $OUTPUT->footer();

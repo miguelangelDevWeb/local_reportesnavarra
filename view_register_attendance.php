@@ -7,12 +7,11 @@ $categoryid = required_param('categoryid', PARAM_INT); // ID de la categoría.
 $context = context_system::instance(); // Contexto del sistema.
 
 $PAGE->set_context($context);
-$PAGE->set_url(new moodle_url('/local/reportesnavarra/view_register_attendance.php', ['categoryid' => $categoryid]));
+$PAGE->set_url(new moodle_url('/local/reportesnavarra/index.php'));
 $PAGE->set_title(get_string('register_attendance', 'local_reportesnavarra'));
-$PAGE->set_heading(get_string('register_attendance', 'local_reportesnavarra'));
 
 $PAGE->navbar->add(get_string('list_categories', 'local_reportesnavarra'), new moodle_url('/local/reportesnavarra/view_category.php'));
-$PAGE->navbar->add(get_string('register_attendance', 'local_reportesnavarra'));
+$PAGE->navbar->add(get_string('register_attendance', 'local_reportesnavarra'), new moodle_url('/local/reportesnavarra/view_register_attendance.php', ['categoryid' => $categoryid]));
 // Obtener la fecha actual para el campo de texto.
 $current_date = date('Y-m-d');
 

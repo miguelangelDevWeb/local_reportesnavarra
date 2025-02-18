@@ -51,31 +51,32 @@ $isadmin = is_siteadmin();
 
 // Contenedor de botones
 echo html_writer::start_tag('div', ['class' => 'button-container']);
+$courses = local_reportesnavarra_get_courses_enrolled($USER->id);
 
 // Botón: Descarga de certificados
-if ($isadmin || has_capability('local/reportesnavarra:downloadcertificates', context_course::instance($COURSE->id))) {
+if ($isadmin || (count($courses) > 0 && has_capability('local/reportesnavarra:downloadcertificates', context_course::instance($courses[0]['courseid'])))) {
     echo html_writer::link(
-        new moodle_url('/local/reportesnavarra/download_certificate.php'),
+        new moodle_url('/local/reportesnavarra/view_user_certificate.php'),
         '<i class="fa fa-download"></i><span>Certificados</span>',
         ['class' => 'btn btn-square btn-primary']
     );
 }
 
 // Botón: Administración
-if ($isadmin || has_capability('local/reportesnavarra:administration', $systemcontext)) {
-    echo html_writer::link(
-        new moodle_url('/local/reportesnavarra/manager_users_categories.php'),
-        '<i class="fa fa-cogs"></i><span>Administración</span>',
-        ['class' => 'btn btn-square btn-success']
-    );
-}
+// if ($isadmin || has_capability('local/reportesnavarra:administration', $systemcontext)) {
+//     echo html_writer::link(
+//         new moodle_url('/local/reportesnavarra/manager_users_categories.php'),
+//         '<i class="fa fa-cogs"></i><span>Administración</span>',
+//         ['class' => 'btn btn-square btn-success']
+//     );
+// }
 
 // Botón: Registro de asistencias
 if ($isadmin || has_capability('local/reportesnavarra:administration_register_attendance', $systemcontext) || has_capability('local/reportesnavarra:gestor_register_attendance', $systemcontext)) {
     echo html_writer::link(
         new moodle_url('/local/reportesnavarra/view_category.php'),
-        '<i class="fa fa-calendar"></i><span>Reg. Asistencia</span>',
-        ['class' => 'btn btn-square btn-register_attendance']
+        '<i class="fa fa-cogs"></i><span>Administración</span>',
+        ['class' => 'btn btn-square btn-success']
     );
 }
 
