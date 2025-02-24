@@ -32,6 +32,7 @@ class local_reportesnavarra_view_admin_certificate_form extends moodleform {
      * Define the form.
      */
     public function definition() {
+        global $USER;
         $mform = $this->_form; 
 
         $dataOptions = local_reportesnavarra_get_grade_categories_config();
@@ -39,9 +40,21 @@ class local_reportesnavarra_view_admin_certificate_form extends moodleform {
         $options = array(
             'multiple' => false,
         );
-   
-        $allcategories = array();
-        $categories = local_reportesnavarra_get_all_categories();
+        $optionsCategory = array(
+            'multiple' => false,
+        );
+        $isadmin = is_siteadmin();
+
+        $allcategories = array('' => 'Seleccione una categoría');
+        $categories = [];
+        if ($isadmin) {
+            $categories = local_reportesnavarra_get_all_categories();
+        } else {
+            $fields = 'cc.id,cc.name ';
+            $conditions = 'uc.userid = ?';
+            $params = [$USER->id];
+            $categories = local_reportesnavarra_get_users_categories($fields,$conditions,$params);
+        }
         foreach ($categories as $category) {
             $allcategories[$category->id] = $category->name ;
         }
@@ -50,12 +63,14 @@ class local_reportesnavarra_view_admin_certificate_form extends moodleform {
         $availablefromgroup2[] =&  $mform->createElement('select', 'period', '', $dataOptions, $options);
 
         $mform->addGroup($availablefromgroup2, 'availablefromgroup', get_string('selected_period', 'local_reportesnavarra'), ' ', false);
-        $mform->disabledIf('availablefromgroup', 'availablefromenabled');
-        $availablefromgroup[] =& $mform->createElement('autocomplete', 'category', get_string('searcharea', 'search'), $allcategories, $options);
+        $availablefromgroup[] =& $mform->createElement('autocomplete', 'category', get_string('searcharea', 'search'), $allcategories, $optionsCategory);
         $mform->addGroup($availablefromgroup, 'availablefromgroup', get_string('searchcategories', 'local_reportesnavarra'), ' ', false);
-        $submitlabel = get_string('submit');
-        $mform->addElement('submit', 'submitmessage', $submitlabel);
-
+        $buttonarray = array();
+        $buttonarray[] =& $mform->createElement('submit', 'submitmessage', get_string('submit'));
+        $buttonarray[] =& $mform->createElement('button', 'newbutton', 'Nuevo', array('onclick' => 'window.location.reload();'));
+        
+        $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);
+        
     }
 
 

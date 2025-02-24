@@ -24,19 +24,14 @@
  */
 
 require_once(__DIR__ . '/../../config.php');
+require_once($CFG->dirroot. '/local/reportesnavarra/lib.php');
 
-$context = context_system::instance();
 require_login();
 global $USER;
 $systemcontext = context_system::instance();
+$roles = get_user_roles($systemcontext, $USER->id);
 
-// Verificar si el usuario tiene la capacidad "moodle/site:manage".
-// if (has_capability('moodle/site:manage', $systemcontext)) {
-//     echo "El usuario tiene el rol de Gestor en el contexto del sistema.";
-// } else {
-//     echo "El usuario no tiene el rol de Gestor en el contexto del sistema.";
-// }
-$PAGE->set_context($context);
+$PAGE->set_context($systemcontext);
 $PAGE->set_url('/local/reportesnavarra/index.php');
 $PAGE->set_title('Gestión de Acciones');
 $PAGE->set_heading('Gestión de Acciones');
@@ -52,9 +47,17 @@ $isadmin = is_siteadmin();
 // Contenedor de botones
 echo html_writer::start_tag('div', ['class' => 'button-container']);
 $courses = local_reportesnavarra_get_courses_enrolled($USER->id);
+$hasCapabilityStudent = false;
+if (!empty($courses)) {
+    $hasCapabilityStudent = has_capability('local/reportesnavarra:downloadcertificates', context_course::instance($courses[0]['courseid']), $USER->id);
+}
+
+
+$hasCapabilityManager = has_capability('local/reportesnavarra:downloadallcertificates', $systemcontext, $USER->id);
+
 
 // Botón: Descarga de certificados
-if ($isadmin || (count($courses) > 0 && has_capability('local/reportesnavarra:downloadcertificates', context_course::instance($courses[0]['courseid'])))) {
+if ($isadmin || $hasCapabilityManager || $hasCapabilityStudent) {
     echo html_writer::link(
         new moodle_url('/local/reportesnavarra/view_user_certificate.php'),
         '<i class="fa fa-download"></i><span>Certificados</span>',
@@ -63,20 +66,20 @@ if ($isadmin || (count($courses) > 0 && has_capability('local/reportesnavarra:do
 }
 
 // Botón: Administración
-// if ($isadmin || has_capability('local/reportesnavarra:administration', $systemcontext)) {
-//     echo html_writer::link(
-//         new moodle_url('/local/reportesnavarra/manager_users_categories.php'),
-//         '<i class="fa fa-cogs"></i><span>Administración</span>',
-//         ['class' => 'btn btn-square btn-success']
-//     );
-// }
+if ($isadmin || has_capability('local/reportesnavarra:administration_users_categories', $systemcontext, $USER->id)) {
+    echo html_writer::link(
+        new moodle_url('/local/reportesnavarra/manager_users_categories.php'),
+        '<i class="fa fa-cogs"></i><span>Categorias</span>',
+        ['class' => 'btn btn-square btn-success']
+    );
+}
 
 // Botón: Registro de asistencias
-if ($isadmin || has_capability('local/reportesnavarra:administration_register_attendance', $systemcontext) || has_capability('local/reportesnavarra:gestor_register_attendance', $systemcontext)) {
+if ($isadmin || has_capability('local/reportesnavarra:administration_register_attendance', $systemcontext,$USER->id)) {
     echo html_writer::link(
         new moodle_url('/local/reportesnavarra/view_category.php'),
-        '<i class="fa fa-cogs"></i><span>Administración</span>',
-        ['class' => 'btn btn-square btn-success']
+        '<i class="fa fa-calendar"></i><span>Administración</span>',
+        ['class' => 'btn btn-square btn-register_attendance']
     );
 }
 

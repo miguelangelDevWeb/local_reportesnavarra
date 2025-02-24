@@ -1,6 +1,7 @@
 <?php
 require_once('../../config.php');
 require_login();
+require_once($CFG->dirroot. '/local/reportesnavarra/lib.php');
 
 // Obtener parámetros de la URL.
 $categoryid = required_param('categoryid', PARAM_INT); // ID de la categoría.
@@ -12,6 +13,14 @@ $PAGE->set_title(get_string('register_attendance', 'local_reportesnavarra'));
 
 $PAGE->navbar->add(get_string('list_categories', 'local_reportesnavarra'), new moodle_url('/local/reportesnavarra/view_category.php'));
 $PAGE->navbar->add(get_string('register_attendance', 'local_reportesnavarra'), new moodle_url('/local/reportesnavarra/view_register_attendance.php', ['categoryid' => $categoryid]));
+
+$has_capability = has_capability('local/reportesnavarra:administration_register_attendance', $context, $USER->id);
+
+if (!$has_capability) {
+    redirect(new moodle_url('/'), get_string('error_permission', 'local_reportesnavarra'), null, \core\output\notification::NOTIFY_ERROR);
+}
+
+
 // Obtener la fecha actual para el campo de texto.
 $current_date = date('Y-m-d');
 

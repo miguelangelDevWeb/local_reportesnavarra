@@ -6,16 +6,21 @@ require_login();
 $isadmin = is_siteadmin();
 
 global $DB, $PAGE, $OUTPUT;
-
+$context = context_system::instance();
 // Configurar la página
 $PAGE->set_url(new moodle_url('/local/reportesnavarra/index.php'));
-$PAGE->set_context(context_system::instance());
+$PAGE->set_context($context);
 $PAGE->set_title(get_string('attendance_list', 'local_reportesnavarra'));
 // $PAGE->set_heading(get_string('attendance_list', 'local_reportesnavarra'));
 
 $PAGE->navbar->add(get_string('list_categories', 'local_reportesnavarra'), new moodle_url('/local/reportesnavarra/view_category.php'));
 $PAGE->navbar->add(get_string('attendance_list', 'local_reportesnavarra'), new moodle_url('/local/reportesnavarra/view_users_attendance.php'));
 
+$has_capability = has_capability('local/reportesnavarra:view_list_attendance', $context, $USER->id);
+
+if (!$has_capability) {
+    redirect(new moodle_url('/'), get_string('error_permission', 'local_reportesnavarra'), null, \core\output\notification::NOTIFY_ERROR);
+}
 // Parámetros
 $categoryid = required_param('categoryid', PARAM_INT); // ID de la categoría.
 $filter_date = optional_param('filter_date', null, PARAM_RAW); // Fecha seleccionada para filtrar

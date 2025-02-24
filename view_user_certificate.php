@@ -39,8 +39,10 @@ require_login(); // Asegúrate de que el usuario está autenticado.
 
 $PAGE->set_context($context);
 $PAGE->set_url(new moodle_url('/local/reportesnavarra/index.php'));
-$PAGE->set_title(get_string('form_title_manager_categories', 'local_reportesnavarra'));
-$PAGE->set_heading(get_string('form_heading_teacher_categories', 'local_reportesnavarra'));
+
+
+$PAGE->navbar->add(get_string('pluginname', 'local_reportesnavarra'), new moodle_url('/local/reportesnavarra/index.php'));
+$PAGE->navbar->add('Descarga de certificados', new moodle_url('/local/reportesnavarra/view_user_certificate.php'));
 
 $mform = new local_reportesnavarra_view_certificate_form(); 
 $mformAdmin = new local_reportesnavarra_view_admin_certificate_form(); 
@@ -50,7 +52,7 @@ $isadmin = is_siteadmin();
 $courses = local_reportesnavarra_get_courses_enrolled($USER->id);
 
 $sw_form_admin = false;
-if ($isadmin || has_capability('local/reportesnavarra:administration', context_system::instance())) {
+if ($isadmin || has_capability('local/reportesnavarra:downloadallcertificates', context_system::instance())) {
     $sw_form_admin = true;
     // Si el formulario es enviado y validado.
     if ($mformAdmin->is_submitted() && $mformAdmin->is_validated()) {
@@ -59,12 +61,13 @@ if ($isadmin || has_capability('local/reportesnavarra:administration', context_s
 
         $period = $data->period ?? [];
         $category = $data->category ?? [];
-        
+     
         if (empty($period) OR empty($category)) {
             echo $OUTPUT->notification(get_string('error_no_selection', 'local_reportesnavarra'), \core\output\notification::NOTIFY_WARNING);
             
         } else {
-            local_grade_download_certificate_by_category($USER, $period, $categoryid);
+            local_grade_download_certificate_by_category($USER, $period, $category);
+           
         }
     }
 
@@ -92,7 +95,7 @@ if ($isadmin || has_capability('local/reportesnavarra:administration', context_s
 
 
 echo $OUTPUT->header(); 
-echo html_writer::tag('h2', get_string('form_heading_manager_categories', 'local_reportesnavarra'));
+echo html_writer::tag('h2', 'Descarga de certificados');
 if ($sw_form_admin) {
    $mformAdmin->display();
 } else {

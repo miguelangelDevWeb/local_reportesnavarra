@@ -117,6 +117,7 @@ function local_reportesnavarra_get_all_categories()
     return $categories;
 }
 
+
 function local_reportesnavarra_save_user_category($users, $categories)
 {
     global $DB;
@@ -288,6 +289,7 @@ function get_context_table_users_categories($userscategories)
 
 function local_reportesnavarra_get_table_categories($categories)
 {
+    global $USER;
     $context = context_system::instance();
     $isadmin = is_siteadmin();
     // Construir la tabla.
@@ -296,34 +298,30 @@ function local_reportesnavarra_get_table_categories($categories)
         'Categoria',
         'Acción'
     ];
-
+    
     foreach ($categories as $category) {
-        $view_url_add_user = new moodle_url('/local/reportesnavarra/manager_users_categories.php');
         $view_url_add_teacher = new moodle_url('/local/reportesnavarra/manager_teachers_categories.php', ['categoryid' => $category->categoryid]);
         $view_url_register = new moodle_url('/local/reportesnavarra/view_register_attendance.php', ['categoryid' => $category->categoryid]);
         $view_url_view_register = new moodle_url('/local/reportesnavarra/view_users_attendance.php', ['categoryid' => $category->categoryid]);
         $link_register = "<i class='fa fa-plus'></i>";
         $link_add_teacher = "<i class='fa fa-user-plus'></i>";
-        $link_add_user = "<i class='fa fa-users'></i>";
         $link_view_register = "<i class='fa fa-list-ul'></i>";
         $action_add_teacher_link = '';
         $action_register_link = '';
         $action_view_register_link = '';
-        if ($isadmin || has_capability('local/reportesnavarra:administration_users_categories', context_system::instance()))
-            $action_add_user_link = html_writer::link($view_url_add_user, $link_add_user, ['title' => 'Agregar usuario a categoria']);
-
-        if ($isadmin || has_capability('local/reportesnavarra:administration_register_teacher', $context))
+    
+        if ($isadmin || has_capability('local/reportesnavarra:administration_register_teacher', $context, $USER->id))
             $action_add_teacher_link = html_writer::link($view_url_add_teacher, $link_add_teacher, ['title' => 'Agregar un nuevo profesor']);
 
-        if ($isadmin || has_capability('local/reportesnavarra:administration_register_attendance', $context))
+        if ($isadmin || has_capability('local/reportesnavarra:administration_register_attendance', $context, $USER->id))
             $action_view_register_link = html_writer::link($view_url_register, $link_register,  ['title' => 'Registro de asistencias']);
 
-        if ($isadmin && has_capability('local/reportesnavarra:gestor_register_attendance', $context))
+        if ($isadmin || has_capability('local/reportesnavarra:view_list_attendance', $context, $USER->id))
             $action_register_link = html_writer::link($view_url_view_register, $link_view_register, ['title' => 'Ver registro de asistencias']);
 
         $table->data[] = [
             format_string($category->name),
-            $action_add_user_link . ' ' .$action_add_teacher_link . ' ' . $action_view_register_link . ' ' . $action_register_link
+            $action_add_teacher_link . ' ' . $action_view_register_link . ' ' . $action_register_link
         ];
     }
     return $table;
@@ -653,6 +651,14 @@ function local_reportesnavarra_get_stundents_enrolled_in_course_category($course
         }
     }
     die;
+}
+
+function get_courses_by_category($categoryid) {
+    global $DB;
+    $sql = "SELECT id, fullname, shortname, category FROM {course} WHERE category = ?";
+    $params = [$categoryid];
+    $rs = $DB->get_records_sql($sql, $params);
+    return $rs;
 }
 
 function local_reportesnavarra_get_period_for_certificate($period)
@@ -1328,463 +1334,477 @@ EOD;
 
 function local_grade_download_certificate_by_category($USER, $period, $categoryid = null) {
     global $CFG;
+    $courses = reset(get_courses_by_category($categoryid));
+  
+    $students = local_reportesnavarra_get_course_users_enrollments($courses->id, 'u.*', [5]);
+    $zip = new ZipArchive();
+    $zipFilename = $CFG->dataroot.'/temp/pdfs/all_report.zip';
     $pdfDir = $CFG->dataroot. "/temp/pdfs/";
 
-    $zip = new ZipArchive();
-    $zipFilename = 'archivos_pdfs.zip';
-
-    if ($zip->open($zipFilename, ZipArchive::CREATE) !== TRUE) {
-        exit("No se pudo crear el archivo ZIP.");
-    }
-
+    if (!is_dir($pdfDir)) {
+        mkdir($pdfDir, 0777, true); // Crea la carpeta con permisos 0777 y permite crear subdirectorios si es necesario
+    } 
+     
     $pdfFiles = []; // Array para almacenar los nombres de los PDFs
-
-    $imgSchool1 = $CFG->dirroot . '/local/reportesnavarra/images/logo1.jpeg';
-    $imgSchool2 = $CFG->dirroot . '/local/reportesnavarra/images/logo2.jpeg';
-
-    $pdf = new CustomPDF(null, null);
-
-
-    // set document information
-    $pdf->SetCreator('NAVARRA');
-    $pdf->SetAuthor('NAVARRA');
-    $pdf->SetTitle('Boletin de notas');
-    $pdf->SetSubject('NAVARRA');
-    $pdf->SetKeywords('NAVARRA, PDF, Boletin de notas');
-
-    $pdf->setPrintHeader(true);
-    //    $pdf->SetHeaderData($imgSchool, 30, 'asdasdasd', 'asdasd', null, null);
-
-    // set header and footer fonts
-    $pdf->setHeaderFont(array('helvetica', '', 10));
-    $pdf->setFooterFont(array('helvetica', '', 8));
-
-    // set default monospaced font
-    $pdf->SetDefaultMonospacedFont('courier');
-
-    // set margins
-    $pdf->SetMargins(15, 27, 15);
-    $pdf->SetHeaderMargin(5);
-    $pdf->SetFooterMargin(10);
-
-    // set auto page breaks
-    $pdf->SetAutoPageBreak(TRUE, 25);
-
-    // set image scale factor
-    //    $pdf->setImageScale(1.25);
-
-
-    // set font
-    $pdf->SetFont('helvetica', 'B', 12);
-
-    // add a page
-    $pdf->AddPage();
-
-
-    $pdf->SetFont('helvetica', '', 8);
-
-    $pdf->Image($imgSchool1, 20, 10, 15, '', 'JPEG', '', 'T', false, 300, '', false, false, 0, false, false, false);
-
-    $pdf->Image($imgSchool2, 170, 10, 15, '', 'JPEG', '', 'T', false, 300, '', false, false, 0, false, false, false);
-
-    // // -----------------------------------------------------------------------------
-    $title = get_config('local_reportesnavarra', 'title');
-    $direction = get_config('local_reportesnavarra', 'address');
-    $phone = get_config('local_reportesnavarra', 'phone');
-    $mail = get_config('local_reportesnavarra', 'email');
-    $year = get_config('local_reportesnavarra', 'yearSchool');
-    $subtitleCertificate = get_string('subtitle_certificate', 'local_reportesnavarra');
-
-    $periodTitle = local_reportesnavarra_get_period_for_certificate($period);
-    $tableTitle = <<<EOD
-<br>
-<table border="0" cellspacing="1" cellpadding="1" style="border: 0px solid #FFFFFF;">
-  <tr>
-    <td style="border: 0px solid #FFFFFF; text-align: center; font-weight: bold; font-size: medium; color: #000000; " colspan="5">{$title}</td>
-  </tr>
-   <tr>
-    <td style="border: 0px solid #FFFFFF; text-align: center; font-weight: bold; font-size: medium; color: #000000; " colspan="5">{$direction}</td>
-  </tr>
-   <tr>
-    <td style="border: 0px solid #FFFFFF; text-align: center; font-weight: bold; font-size: medium; color: #000000; " colspan="5">TELF: {$phone}</td>
-  </tr>
-   <tr>
-    <td style="border: 0px solid #FFFFFF; text-align: center; font-weight: bold; font-size: medium; color: #000000; " colspan="5">CORREO: {$mail}</td>
-  </tr>
-   <tr>
-    <td style="border: 0px solid #FFFFFF; text-align: center; font-weight: bold; font-size: medium; color: #000000; " colspan="5">AÑO LECTIVO: {$year}</td>
-  </tr>
-    <tr>
-    <td style="border: 0px solid #FFFFFF; text-align: center; font-weight: bold; font-size: medium; color: #000000; " colspan="5">{$subtitleCertificate} {$periodTitle}</td>
-  </tr>
-</table>
-
-EOD;
-    $pdf->writeHTML($tableTitle, true, false, false, false, '');
-    //     //Obtención de los datos generales
-    //Titles
-    $academic_year_title = get_string('academic_year_header', 'local_reportesnavarra');
-    $student_title = get_string('student_header', 'local_reportesnavarra');
-    $course_title = get_string('course_header', 'local_reportesnavarra');
-    $workday_title = get_string('workday_header', 'local_reportesnavarra');
-    $period_title = get_string('period_header', 'local_reportesnavarra');
-    $parallel_title = get_string('parallel_header', 'local_reportesnavarra');
-    $teacher_title = get_string('teacher_header', 'local_reportesnavarra');
-
-    //Title Values
-    $student_title = get_string('student_header', 'local_reportesnavarra');
-    $period_title = get_string('period_header', 'local_reportesnavarra');
-    $workday_title = get_string('workday_header', 'local_reportesnavarra');
-    $workday = get_config('local_reportesnavarra', 'day');
-    $yearSchool = get_config('local_reportesnavarra', 'yearSchool');
-    $studentName = strtoupper($USER->firstname . ' ' . $USER->lastname);
-    $periodValue = local_reportesnavarra_get_period_title_for_certificate($period);
-    $conditions = $conditions = 'cc.id = ?';
-
-    $params =  ['cc.id' => $categoryid];
-    $fields = 'cc.name, cc.id, u.firstname, u.lastname';
-    $categories = local_reportesnavarra_get_teachers_categories($fields, $conditions, $params);
-
-    $categoryName = '';
-    $teacherName = '';
-    foreach ($categories as $category) {
-        // var_dump($category);
-        $teacherName = strtoupper($category->firstname . ' ' . $category->lastname);
-        $categoryName = $category->name;
-    }
-    $categoryName = splitLastCharacter($categoryName);
-    // var_dump($categoryName);
-    $categoryNameValue = $categoryName['course'];
-    $categoryParallelValue = $categoryName['parallel'];
-    $profesionalTitle = get_config('local_reportesnavarra', 'profesional_title');
-
-    $tableHeader = "";
-    $tableHeader .= <<<EOD
-    <table cellspacing="0" cellpadding="1" style="border-collapse: collapse; width: 100%;">
-    <tr>
-        <td width="12%" style="text-align: left; font-weight: bold; font-size: 7rem;">$academic_year_title</td>
-        <td width="45%" colspan="4" style="text-align: left; font-size: 7rem;">$yearSchool</td>
-        <td width="12%" style="text-align: left; font-weight: bold; font-size: 7rem;">$workday_title</td>
-        <td width="31%" colspan="4" style="text-align: left; font-size: 7rem;">$workday</td>
-        </tr>
-        <tr>
-        <td width="12%" style="text-align: left; font-weight: bold; font-size: 7rem;">$student_title</td>
-        <td width="45%" colspan="4" style="text-align: left; font-size: 7rem;">$studentName</td>
-        <td width="12%" style="text-align: left; font-weight: bold; font-size: 7rem;">$period_title</td>
-        <td width="31%" colspan="4" style="text-align: left; font-size: 7rem;">$periodValue</td>
-        </tr>
-        <tr>
-        <td width="12%" style="text-align: left; font-weight: bold; font-size: 7rem;">$course_title</td>
-        <td width="45%" colspan="4" style="text-align: left; font-size: 7rem;">$categoryNameValue</td>
-        <td width="12%" style="text-align: left; font-weight: bold; font-size: 7rem;">$parallel_title</td>
-        <td width="31%" colspan="4" style="text-align: left; ont-size: 7rem;">$categoryParallelValue</td>
-        </tr>
-        <tr>
-        <td width="12%" style="text-align: left; font-weight: bold; font-size: 7rem;">$teacher_title</td>
-        <td width="45%" colspan="4" style="text-align: left; font-size: 7rem;">$profesionalTitle $teacherName</td>
-        <td width="12%" style="text-align: left; font-weight: bold; font-size: 7rem;"></td>
-        <td width="31%" colspan="4" style="text-align: left; font-size: 7rem;"></td>
-        </tr>
-        </table>
-    EOD;
-
-
-    $pdf->writeHTML($tableHeader, true, false, false, false, '');
-    $pdf->SetCellPadding(1);
-    //Inicio de la tabla de calificación
-    $tableGrade = "";
-    $tableGrade .= <<<EOD
-    <table cellspacing="0" cellpadding="2" style="border-collapse: collapse; width: 100%; border: 1px solid #000000;">
-    EOD;
-
-    $tableGrade .= <<<EOD
-        <tr>
-            <td width="70%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem;">ASIGNATURA</td>
-            <td width="10%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 5rem;">NOTA CUANTITATIVA</td>
-            <td width="9%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 5rem;">NOTA CUALITATIVA</td>
-            <td width="11%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 5rem;">NOTA COMPORTAMENTAL</td>
-        </tr>
-
-    EOD;
-    //Listado de cursos
-
-    $courses = local_reportesnavarra_get_courses_enrolled($USER->id);
-    $categoryGradeName = local_reportesnavarra_get_period_title_for_grade_category($period);
-
-    //first_trimester
-    $totalGradeCourse = 0;
-    $totalCourses = count($courses);
-    foreach ($courses as $course) {
-        if ($course['category'] == $categoryid) {
-            //Obtengo la categoria principal
-            $categoriesPrincipal = reset(local_reportesnavarra_get_course_category_by_period($course['courseid'], $categoryGradeName));
-            //Obtengo el item de calificación
-            $gradeItem = local_reportesnavarra_get_course_grade_items($course['courseid'], 'category', $categoriesPrincipal->id);
-            //Obtengo la calificación
-            $grade = local_reportesnavarra_get_course_grade_grade($USER->id, $gradeItem->id);
-            $finalGrade = $grade->finalgrade;
-            $totalGradeCourse += $finalGrade;
-            $courseName = strtoupper($course['fullname']);
-
-            $gradeCualitative = local_reportes_navarra_get_grade_cualitative($finalGrade);
-            $gradeComportamental = local_reportes_navarra_get_grade_comportamental($finalGrade);
-            $tableGrade .= <<<EOD
-                <tr>
-                    <td width="70%" style="border: 0.1px solid #000000; text-align: left; font-size: 7rem; padding: 20px;">$courseName</td>
-                    <td width="10%" style="border: 0.1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">$finalGrade</td>
-                    <td width="9%" style="border: 0.1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">$gradeCualitative</td>
-                    <td width="11%" style="border: 0.5px solid #000000; text-align: center;  font-size: 7rem; padding: 20px;">$gradeComportamental</td>
-                </tr>
-            EOD;
+    foreach ($students as $student) {
+      
+    
+        if ($zip->open($zipFilename, ZipArchive::CREATE) !== TRUE) {
+            exit("No se pudo crear el archivo ZIP.");
         }
-    }
-    $tableGrade .= <<<EOD
-    <tr>
-        <td width="70%" style="border: 0.1px solid #000000; text-align: left; font-weight: bold; font-size: 6rem; padding: 20px;"></td>
-        <td width="10%" style="border: 0.1px solid #000000; text-align: center; font-weight: bold; font-size: 6rem; padding: 20px;"></td>
-        <td width="9%" style="border: 0.1px solid #000000; text-align: center; font-weight: bold; font-size: 6rem; padding: 20px;"></td>
-        <td width="11%" style="border: 0.5px solid #000000; text-align: center; font-weight: bold; font-size: 6rem; padding: 20px;"></td>
-    </tr>
-    <tr>
-        <td width="70%" style="border: 0.1px solid #000000; text-align: left; font-weight: bold; font-size: 6rem; padding: 20px;"></td>
-        <td width="10%" style="border: 0.1px solid #000000; text-align: center; font-weight: bold; font-size: 6rem; padding: 20px;"></td>
-        <td width="9%" style="border: 0.1px solid #000000; text-align: center; font-weight: bold; font-size: 6rem; padding: 20px;"></td>
-        <td width="11%" style="border: 0.5px solid #000000; text-align: center; font-weight: bold; font-size: 6rem; padding: 20px;"></td>
-    </tr>
-
-EOD;
-
-    //Promedio del estudiante
-    $gradeAvarage = ($totalGradeCourse / $totalCourses);
-    $gradeAvarageCualitative = local_reportes_navarra_get_grade_cualitative($gradeAvarage);
-    $gradeAvarageComportamental = local_reportes_navarra_get_grade_comportamental($gradeAvarage);
-    $tableGrade .= <<<EOD
+    
+    
+        $imgSchool1 = $CFG->dirroot . '/local/reportesnavarra/images/logo1.jpeg';
+        $imgSchool2 = $CFG->dirroot . '/local/reportesnavarra/images/logo2.jpeg';
+    
+        $pdf = new CustomPDF(null, null);
+    
+    
+        // set document information
+        $pdf->SetCreator('NAVARRA');
+        $pdf->SetAuthor('NAVARRA');
+        $pdf->SetTitle('Boletin de notas');
+        $pdf->SetSubject('NAVARRA');
+        $pdf->SetKeywords('NAVARRA, PDF, Boletin de notas');
+    
+        $pdf->setPrintHeader(true);
+        //    $pdf->SetHeaderData($imgSchool, 30, 'asdasdasd', 'asdasd', null, null);
+    
+        // set header and footer fonts
+        $pdf->setHeaderFont(array('helvetica', '', 10));
+        $pdf->setFooterFont(array('helvetica', '', 8));
+    
+        // set default monospaced font
+        $pdf->SetDefaultMonospacedFont('courier');
+    
+        // set margins
+        $pdf->SetMargins(15, 27, 15);
+        $pdf->SetHeaderMargin(5);
+        $pdf->SetFooterMargin(10);
+    
+        // set auto page breaks
+        $pdf->SetAutoPageBreak(TRUE, 25);
+    
+        // set image scale factor
+        //    $pdf->setImageScale(1.25);
+    
+    
+        // set font
+        $pdf->SetFont('helvetica', 'B', 12);
+    
+        // add a page
+        $pdf->AddPage();
+    
+    
+        $pdf->SetFont('helvetica', '', 8);
+    
+        $pdf->Image($imgSchool1, 20, 10, 15, '', 'JPEG', '', 'T', false, 300, '', false, false, 0, false, false, false);
+    
+        $pdf->Image($imgSchool2, 170, 10, 15, '', 'JPEG', '', 'T', false, 300, '', false, false, 0, false, false, false);
+    
+        // // -----------------------------------------------------------------------------
+        $title = get_config('local_reportesnavarra', 'title');
+        $direction = get_config('local_reportesnavarra', 'address');
+        $phone = get_config('local_reportesnavarra', 'phone');
+        $mail = get_config('local_reportesnavarra', 'email');
+        $year = get_config('local_reportesnavarra', 'yearSchool');
+        $subtitleCertificate = get_string('subtitle_certificate', 'local_reportesnavarra');
+    
+        $periodTitle = local_reportesnavarra_get_period_for_certificate($period);
+        $tableTitle = <<<EOD
+    <br>
+    <table border="0" cellspacing="1" cellpadding="1" style="border: 0px solid #FFFFFF;">
+      <tr>
+        <td style="border: 0px solid #FFFFFF; text-align: center; font-weight: bold; font-size: medium; color: #000000; " colspan="5">{$title}</td>
+      </tr>
+       <tr>
+        <td style="border: 0px solid #FFFFFF; text-align: center; font-weight: bold; font-size: medium; color: #000000; " colspan="5">{$direction}</td>
+      </tr>
+       <tr>
+        <td style="border: 0px solid #FFFFFF; text-align: center; font-weight: bold; font-size: medium; color: #000000; " colspan="5">TELF: {$phone}</td>
+      </tr>
+       <tr>
+        <td style="border: 0px solid #FFFFFF; text-align: center; font-weight: bold; font-size: medium; color: #000000; " colspan="5">CORREO: {$mail}</td>
+      </tr>
+       <tr>
+        <td style="border: 0px solid #FFFFFF; text-align: center; font-weight: bold; font-size: medium; color: #000000; " colspan="5">AÑO LECTIVO: {$year}</td>
+      </tr>
         <tr>
-            <td width="70%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">PROMEDIO DEL ESTUDIANTE</td>
-            <td width="10%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">$gradeAvarage</td>
-            <td width="9%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">$gradeAvarageCualitative</td>
-            <td width="11%" style="border: 1px solid #000000; text-align: center;  font-size:7rem; padding: 20px;">$gradeAvarageComportamental</td>
+        <td style="border: 0px solid #FFFFFF; text-align: center; font-weight: bold; font-size: medium; color: #000000; " colspan="5">{$subtitleCertificate} {$periodTitle}</td>
+      </tr>
+    </table>
+    
+    EOD;
+        $pdf->writeHTML($tableTitle, true, false, false, false, '');
+        //     //Obtención de los datos generales
+        //Titles
+        $academic_year_title = get_string('academic_year_header', 'local_reportesnavarra');
+        $student_title = get_string('student_header', 'local_reportesnavarra');
+        $course_title = get_string('course_header', 'local_reportesnavarra');
+        $workday_title = get_string('workday_header', 'local_reportesnavarra');
+        $period_title = get_string('period_header', 'local_reportesnavarra');
+        $parallel_title = get_string('parallel_header', 'local_reportesnavarra');
+        $teacher_title = get_string('teacher_header', 'local_reportesnavarra');
+    
+        //Title Values
+        $student_title = get_string('student_header', 'local_reportesnavarra');
+        $period_title = get_string('period_header', 'local_reportesnavarra');
+        $workday_title = get_string('workday_header', 'local_reportesnavarra');
+        $workday = get_config('local_reportesnavarra', 'day');
+        $yearSchool = get_config('local_reportesnavarra', 'yearSchool');
+        $studentName = strtoupper($student->firstname . ' ' . $student->lastname);
+        $periodValue = local_reportesnavarra_get_period_title_for_certificate($period);
+        $conditions = $conditions = 'cc.id = ?';
+    
+        $params =  ['cc.id' => $categoryid];
+        $fields = 'cc.name, cc.id, u.firstname, u.lastname';
+        $categories = local_reportesnavarra_get_teachers_categories($fields, $conditions, $params);
+    
+        $categoryName = '';
+        $teacherName = '';
+        foreach ($categories as $category) {
+            // var_dump($category);
+            $teacherName = strtoupper($category->firstname . ' ' . $category->lastname);
+            $categoryName = $category->name;
+        }
+        $categoryName = splitLastCharacter($categoryName);
+        // var_dump($categoryName);
+        $categoryNameValue = $categoryName['course'];
+        $categoryParallelValue = $categoryName['parallel'];
+        $profesionalTitle = get_config('local_reportesnavarra', 'profesional_title');
+    
+        $tableHeader = "";
+        $tableHeader .= <<<EOD
+        <table cellspacing="0" cellpadding="1" style="border-collapse: collapse; width: 100%;">
+        <tr>
+            <td width="12%" style="text-align: left; font-weight: bold; font-size: 7rem;">$academic_year_title</td>
+            <td width="45%" colspan="4" style="text-align: left; font-size: 7rem;">$yearSchool</td>
+            <td width="12%" style="text-align: left; font-weight: bold; font-size: 7rem;">$workday_title</td>
+            <td width="31%" colspan="4" style="text-align: left; font-size: 7rem;">$workday</td>
+            </tr>
+            <tr>
+            <td width="12%" style="text-align: left; font-weight: bold; font-size: 7rem;">$student_title</td>
+            <td width="45%" colspan="4" style="text-align: left; font-size: 7rem;">$studentName</td>
+            <td width="12%" style="text-align: left; font-weight: bold; font-size: 7rem;">$period_title</td>
+            <td width="31%" colspan="4" style="text-align: left; font-size: 7rem;">$periodValue</td>
+            </tr>
+            <tr>
+            <td width="12%" style="text-align: left; font-weight: bold; font-size: 7rem;">$course_title</td>
+            <td width="45%" colspan="4" style="text-align: left; font-size: 7rem;">$categoryNameValue</td>
+            <td width="12%" style="text-align: left; font-weight: bold; font-size: 7rem;">$parallel_title</td>
+            <td width="31%" colspan="4" style="text-align: left; ont-size: 7rem;">$categoryParallelValue</td>
+            </tr>
+            <tr>
+            <td width="12%" style="text-align: left; font-weight: bold; font-size: 7rem;">$teacher_title</td>
+            <td width="45%" colspan="4" style="text-align: left; font-size: 7rem;">$profesionalTitle $teacherName</td>
+            <td width="12%" style="text-align: left; font-weight: bold; font-size: 7rem;"></td>
+            <td width="31%" colspan="4" style="text-align: left; font-size: 7rem;"></td>
+            </tr>
+            </table>
+        EOD;
+    
+    
+        $pdf->writeHTML($tableHeader, true, false, false, false, '');
+        $pdf->SetCellPadding(1);
+        //Inicio de la tabla de calificación
+        $tableGrade = "";
+        $tableGrade .= <<<EOD
+        <table cellspacing="0" cellpadding="2" style="border-collapse: collapse; width: 100%; border: 1px solid #000000;">
+        EOD;
+    
+        $tableGrade .= <<<EOD
+            <tr>
+                <td width="70%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem;">ASIGNATURA</td>
+                <td width="10%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 5rem;">NOTA CUANTITATIVA</td>
+                <td width="9%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 5rem;">NOTA CUALITATIVA</td>
+                <td width="11%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 5rem;">NOTA COMPORTAMENTAL</td>
+            </tr>
+    
+        EOD;
+        //Listado de cursos
+    
+        $courses = local_reportesnavarra_get_courses_enrolled($student->id);
+        $categoryGradeName = local_reportesnavarra_get_period_title_for_grade_category($period);
+    
+        //first_trimester
+        $totalGradeCourse = 0;
+        $totalCourses = count($courses);
+        foreach ($courses as $course) {
+            if ($course['category'] == $categoryid) {
+                //Obtengo la categoria principal
+                $categoriesPrincipal = reset(local_reportesnavarra_get_course_category_by_period($course['courseid'], $categoryGradeName));
+                //Obtengo el item de calificación
+                $gradeItem = local_reportesnavarra_get_course_grade_items($course['courseid'], 'category', $categoriesPrincipal->id);
+                //Obtengo la calificación
+                $grade = local_reportesnavarra_get_course_grade_grade($student->id, $gradeItem->id);
+                $finalGrade = $grade->finalgrade;
+                $totalGradeCourse += $finalGrade;
+                $courseName = strtoupper($course['fullname']);
+    
+                $gradeCualitative = local_reportes_navarra_get_grade_cualitative($finalGrade);
+                $gradeComportamental = local_reportes_navarra_get_grade_comportamental($finalGrade);
+                $tableGrade .= <<<EOD
+                    <tr>
+                        <td width="70%" style="border: 0.1px solid #000000; text-align: left; font-size: 7rem; padding: 20px;">$courseName</td>
+                        <td width="10%" style="border: 0.1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">$finalGrade</td>
+                        <td width="9%" style="border: 0.1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">$gradeCualitative</td>
+                        <td width="11%" style="border: 0.5px solid #000000; text-align: center;  font-size: 7rem; padding: 20px;">$gradeComportamental</td>
+                    </tr>
+                EOD;
+            }
+        }
+        $tableGrade .= <<<EOD
+        <tr>
+            <td width="70%" style="border: 0.1px solid #000000; text-align: left; font-weight: bold; font-size: 6rem; padding: 20px;"></td>
+            <td width="10%" style="border: 0.1px solid #000000; text-align: center; font-weight: bold; font-size: 6rem; padding: 20px;"></td>
+            <td width="9%" style="border: 0.1px solid #000000; text-align: center; font-weight: bold; font-size: 6rem; padding: 20px;"></td>
+            <td width="11%" style="border: 0.5px solid #000000; text-align: center; font-weight: bold; font-size: 6rem; padding: 20px;"></td>
         </tr>
-
+        <tr>
+            <td width="70%" style="border: 0.1px solid #000000; text-align: left; font-weight: bold; font-size: 6rem; padding: 20px;"></td>
+            <td width="10%" style="border: 0.1px solid #000000; text-align: center; font-weight: bold; font-size: 6rem; padding: 20px;"></td>
+            <td width="9%" style="border: 0.1px solid #000000; text-align: center; font-weight: bold; font-size: 6rem; padding: 20px;"></td>
+            <td width="11%" style="border: 0.5px solid #000000; text-align: center; font-weight: bold; font-size: 6rem; padding: 20px;"></td>
+        </tr>
+    
     EOD;
-    //Fila de observaciones
-    $textQualitativeText = get_qualitative_scale_text($gradeAvarageCualitative);
-    $textComportamentalText = strtoupper(get_comportamental_escale_text($gradeAvarageComportamental));
-    $tableGrade .= <<<EOD
-    <tr>
-        <td width="25%" style="border: 1px solid #000000; text-align: left; font-weight: bold; font-size: 7rem; padding: 20px;">OBSERVACIONES:</td>
-        <td width="75%" style="border: 1px solid #000000; text-align: left; font-weight: bold; font-size: 6rem; padding: 20px;">$textQualitativeText</td>
-    </tr>
-     <tr>
-        <td width="25%" style="border: 1px solid #000000; text-align: left; font-weight: bold; font-size: 7rem; padding: 30px;">RECOMENDACIONES:</td>
-        <td width="75%" style="border: 1px solid #000000; text-align: left; font-weight: bold; font-size: 6rem; padding: 30px;">$textComportamentalText</td>
-    </tr>
+    
+        //Promedio del estudiante
+        $gradeAvarage = round(($totalGradeCourse / $totalCourses), 2);
+        $gradeAvarageCualitative = local_reportes_navarra_get_grade_cualitative($gradeAvarage);
+        $gradeAvarageComportamental = local_reportes_navarra_get_grade_comportamental($gradeAvarage);
+        $tableGrade .= <<<EOD
+            <tr>
+                <td width="70%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">PROMEDIO DEL ESTUDIANTE</td>
+                <td width="10%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">$gradeAvarage</td>
+                <td width="9%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">$gradeAvarageCualitative</td>
+                <td width="11%" style="border: 1px solid #000000; text-align: center;  font-size:7rem; padding: 20px;">$gradeAvarageComportamental</td>
+            </tr>
+    
+        EOD;
+        //Fila de observaciones
+        $textQualitativeText = get_qualitative_scale_text($gradeAvarageCualitative);
+        $textComportamentalText = strtoupper(get_comportamental_escale_text($gradeAvarageComportamental));
+        $tableGrade .= <<<EOD
+        <tr>
+            <td width="25%" style="border: 1px solid #000000; text-align: left; font-weight: bold; font-size: 7rem; padding: 20px;">OBSERVACIONES:</td>
+            <td width="75%" style="border: 1px solid #000000; text-align: left; font-weight: bold; font-size: 6rem; padding: 20px;">$textQualitativeText</td>
+        </tr>
+         <tr>
+            <td width="25%" style="border: 1px solid #000000; text-align: left; font-weight: bold; font-size: 7rem; padding: 30px;">RECOMENDACIONES:</td>
+            <td width="75%" style="border: 1px solid #000000; text-align: left; font-weight: bold; font-size: 6rem; padding: 30px;">$textComportamentalText</td>
+        </tr>
+        EOD;
+        //Cierre de la tabla
+        $tableGrade .= <<<EOD
+        </table>
+        EOD;
+    
+        //Table descripcion qualitativa
+    
+        $tableGrade .= <<<EOD
+        <br><br>
+        <table cellspacing="0" cellpadding="2" style="border-collapse: collapse; width: 100%; border: 1px solid #000000;">
+        EOD;
+        $qualitativeText1 = get_string('qualitative_scale_text1', 'local_reportesnavarra');
+        $qualitativeText2 = get_string('qualitative_scale_text2', 'local_reportesnavarra');
+        $qualitativeText3 = get_string('qualitative_scale_text3', 'local_reportesnavarra');
+        $tableGrade .= <<<EOD
+        <tr>
+            <td width="100%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">ESCALA CUALITATIVA</td>
+        </tr>
+        <tr>
+            <td width="15%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">A+</td>
+            <td width="70%" rowspan = "3" style="border: 1px solid #000000; vertical-align: middle; text-align: left; font-size: 7rem; padding: 60px;">
+                <div style="display: flex; align-items: left; justify-content: center; height: 100%;">
+                    $qualitativeText1
+                </div>
+            </td>
+            <td width="15%" style="border: 1px solid #000000; text-align: center;  font-size: 7rem; padding: 20px;">9,01 -10</td>
+        </tr>
+        <tr>
+            <td width="15%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">A-</td>
+            <td width="15%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">8,01 - 9</td>
+        </tr>
+        <tr>
+            <td width="15%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">B+</td>
+            <td width="15%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">7,01 - 8</td>
+        </tr>
+     
+        <tr>
+            <td width="15%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">B-</td>
+            <td width="70%" rowspan = "3" style="border: 1px solid #000000; vertical-align: middle; text-align: left; font-size: 7rem; padding: 60px;">
+                <div style="display: flex; align-items: left; justify-content: center; height: 100%;">
+                    $qualitativeText2
+                </div> 
+            </td>
+            <td width="15%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">6,01 - 7</td>
+        </tr>
+        <tr>
+            <td width="15%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">C+</td>
+            <td width="15%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">5,01 - 6</td>
+        </tr>
+        <tr>
+            <td width="15%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">C-</td>
+            <td width="15%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">4,01 - 5</td>
+        </tr>
+      
+        <tr>
+            <td width="15%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">D+</td>
+            <td width="70%" rowspan = "4" style="border: 1px solid #000000; text-align: left; font-size: 7rem; padding: 60px;">
+                <div style="display: flex; align-items: left; justify-content: center; height: 100%;">
+                    $qualitativeText3
+                </div>
+            </td>
+            <td width="15%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">3,01 - 4</td>
+        </tr>
+        <tr>
+            <td width="15%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">D-</td>
+            <td width="15%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">2,01 - 3</td>
+        </tr>
+        <tr>
+            <td width="15%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">E+</td>
+            <td width="15%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">1,01 - 2</td>
+        </tr>
+         <tr>
+            <td width="15%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">E-</td>
+            <td width="15%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">0,01 - 1</td>
+        </tr>
+        EOD;
+    
+        $tableGrade .= <<<EOD
+        </table>
+        EOD;
+        $attendances = get_days_attendance($period, $student->id, $categoryid);
+        $days_attended = $attendances->days_attended;
+        $faults = $attendances->faults;
+        $arrears = $attendances->arrears;
+        $justified_absences = $attendances->justified_absences;
+        $justified_delays = $attendances->justified_delays;
+    
+        $tableGrade .= <<<EOD
+        <br><br>
+        <table style="width: 100%; border-collapse: collapse;">
+        EOD;
+    
+        $tableGrade .= <<<EOD
+        <tr>
+            <td width="100%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 40px;">
+                 FALTAS Y ATRASOS
+            </td>
+        </tr>
+        <tr>
+            <td width="30%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 80px;">DIAS ASISTIDOS</td>
+            <td width="70%" style="border: 1px solid #000000; text-align: center;  font-size: 7rem; padding: 80px;">$days_attended</td>
+        </tr>
+        <tr>
+            <td width="30%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 40px;">FALTAS</td>
+            <td width="30%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 40px;">$faults</td>
+            <td width="20%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 40px; font-weight: bold;">ATRASOS</td>
+            <td width="20%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 40px;">$arrears</td>
+        </tr>
+        <tr>
+            <td width="30%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; ">
+                    FALTAS JUSTIFICADAS
+            </td>
+            <td width="30%" style="border: 1px solid #000000; text-align: center; font-size: 7rem;">
+                   $justified_absences
+            </td>
+            <td width="20%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; font-weight: bold;">
+                    ATRASOS JUSTIFICADOS
+            </td>
+            <td width="20%" style="border: 1px solid #000000; text-align: center; font-size: 7rem;">
+                    $justified_delays
+            </td>
+        </tr>
+        EOD;
+    
+        $tableGrade .= <<<EOD
+        </table>
+        EOD;
+    
+        $tableGrade .= <<<EOD
+        <br><br>
+        <table style="width: 100%; border-collapse: collapse;">
+        EOD;
+    
+        $criterio1 = get_string('comportamental_scale_s', 'local_reportesnavarra');
+        $criterio2 = get_string('comportamental_scale_f', 'local_reportesnavarra');
+        $criterio3 = get_string('comportamental_scale_o', 'local_reportesnavarra');
+        $criterio4 = get_string('comportamental_scale_n', 'local_reportesnavarra');
+        $tableGrade .= <<<EOD
+        <tr>
+            <td width="100%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem;">
+                    PARÁMETROS DE CONDUCTA
+            </td>
+        </tr>
+        <tr>
+            <td width="30%" style="border: 1px solid #000000; text-align: left; font-weight: bold; font-size: 7rem; padding: 80px;">S - SIEMPRE</td>
+            <td width="70%" style="border: 1px solid #000000; text-align: left;  font-size: 7rem; padding: 80px;">$criterio1</td>
+        </tr>
+         <tr>
+            <td width="30%" style="border: 1px solid #000000; text-align: left; font-weight: bold; font-size: 7rem; padding: 80px;">F - FRECUENTEMENTE</td>
+            <td width="70%" style="border: 1px solid #000000; text-align: left;  font-size: 7rem; padding: 80px;">$criterio2</td>
+        </tr>
+         <tr>
+            <td width="30%" style="border: 1px solid #000000; text-align: left; font-weight: bold; font-size: 7rem; padding: 80px;">O - OCASIONALMENTE</td>
+            <td width="70%" style="border: 1px solid #000000; text-align: left;  font-size: 7rem; padding: 80px;">$criterio3</td>
+        </tr>
+         <tr>
+            <td width="30%" style="border: 1px solid #000000; text-align: left; font-weight: bold; font-size: 7rem; padding: 80px;">N - NUNCA</td>
+            <td width="70%" style="border: 1px solid #000000; text-align: left;  font-size: 7rem; padding: 80px;">$criterio4</td>
+        </tr>
+       
+        EOD;
+    
+        $tableGrade .= <<<EOD
+        </table><br><br><br><br><br><br>
+        EOD;
+        $signature = get_config('local_reportesnavarra', 'signature');
+        $tableGrade .= <<<EOD
+        <tr>
+            <td style="border: none; text-align: center; padding-top: 30px; width: 45%;">
+                <!-- Línea de firma 1 -->
+                <div style="width: 200px; border-top: 2px solid #000000; margin-left: auto; margin-right: auto;">
+                    <div style="text-align: center; font-size: 10px; padding-top: 5px;">$signature</div>
+                </div>
+            </td>
+            <td style="border: none; text-align: center; padding-top: 30px; width: 10%;">&nbsp;</td> <!-- Celda para separación -->
+            <td style="border: none; text-align: center; padding-top: 30px; width: 45%;">
+                <!-- Línea de firma 2 -->
+                <div style="width: 200px; border-top: 2px solid #000000; margin-left: auto; margin-right: auto;">
+                    <div style="text-align: center; font-size: 10px; padding-top: 5px;">$profesionalTitle $teacherName</div>
+                </div>
+            </td>
+        </tr>
     EOD;
-    //Cierre de la tabla
-    $tableGrade .= <<<EOD
-    </table>
-    EOD;
-
-    //Table descripcion qualitativa
-
-    $tableGrade .= <<<EOD
-    <br><br>
-    <table cellspacing="0" cellpadding="2" style="border-collapse: collapse; width: 100%; border: 1px solid #000000;">
-    EOD;
-    $qualitativeText1 = get_string('qualitative_scale_text1', 'local_reportesnavarra');
-    $qualitativeText2 = get_string('qualitative_scale_text2', 'local_reportesnavarra');
-    $qualitativeText3 = get_string('qualitative_scale_text3', 'local_reportesnavarra');
-    $tableGrade .= <<<EOD
-    <tr>
-        <td width="100%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">ESCALA CUALITATIVA</td>
-    </tr>
-    <tr>
-        <td width="15%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">A+</td>
-        <td width="70%" rowspan = "3" style="border: 1px solid #000000; vertical-align: middle; text-align: left; font-size: 7rem; padding: 60px;">
-            <div style="display: flex; align-items: left; justify-content: center; height: 100%;">
-                $qualitativeText1
-            </div>
-        </td>
-        <td width="15%" style="border: 1px solid #000000; text-align: center;  font-size: 7rem; padding: 20px;">9,01 -10</td>
-    </tr>
-    <tr>
-        <td width="15%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">A-</td>
-        <td width="15%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">8,01 - 9</td>
-    </tr>
-    <tr>
-        <td width="15%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">B+</td>
-        <td width="15%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">7,01 - 8</td>
-    </tr>
- 
-    <tr>
-        <td width="15%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">B-</td>
-        <td width="70%" rowspan = "3" style="border: 1px solid #000000; vertical-align: middle; text-align: left; font-size: 7rem; padding: 60px;">
-            <div style="display: flex; align-items: left; justify-content: center; height: 100%;">
-                $qualitativeText2
-            </div> 
-        </td>
-        <td width="15%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">6,01 - 7</td>
-    </tr>
-    <tr>
-        <td width="15%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">C+</td>
-        <td width="15%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">5,01 - 6</td>
-    </tr>
-    <tr>
-        <td width="15%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">C-</td>
-        <td width="15%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">4,01 - 5</td>
-    </tr>
-  
-    <tr>
-        <td width="15%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">D+</td>
-        <td width="70%" rowspan = "4" style="border: 1px solid #000000; text-align: left; font-size: 7rem; padding: 60px;">
-            <div style="display: flex; align-items: left; justify-content: center; height: 100%;">
-                $qualitativeText3
-            </div>
-        </td>
-        <td width="15%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">3,01 - 4</td>
-    </tr>
-    <tr>
-        <td width="15%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">D-</td>
-        <td width="15%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">2,01 - 3</td>
-    </tr>
-    <tr>
-        <td width="15%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">E+</td>
-        <td width="15%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">1,01 - 2</td>
-    </tr>
-     <tr>
-        <td width="15%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 20px;">E-</td>
-        <td width="15%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 20px;">0,01 - 1</td>
-    </tr>
-    EOD;
-
-    $tableGrade .= <<<EOD
-    </table>
-    EOD;
-    $attendances = get_days_attendance($period, $USER->id, $categoryid);
-    $days_attended = $attendances->days_attended;
-    $faults = $attendances->faults;
-    $arrears = $attendances->arrears;
-    $justified_absences = $attendances->justified_absences;
-    $justified_delays = $attendances->justified_delays;
-
-    $tableGrade .= <<<EOD
-    <br><br>
-    <table style="width: 100%; border-collapse: collapse;">
-    EOD;
-
-    $tableGrade .= <<<EOD
-    <tr>
-        <td width="100%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 40px;">
-             FALTAS Y ATRASOS
-        </td>
-    </tr>
-    <tr>
-        <td width="30%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 80px;">DIAS ASISTIDOS</td>
-        <td width="70%" style="border: 1px solid #000000; text-align: center;  font-size: 7rem; padding: 80px;">$days_attended</td>
-    </tr>
-    <tr>
-        <td width="30%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; padding: 40px;">FALTAS</td>
-        <td width="30%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 40px;">$faults</td>
-        <td width="20%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 40px; font-weight: bold;">ATRASOS</td>
-        <td width="20%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; padding: 40px;">$arrears</td>
-    </tr>
-    <tr>
-        <td width="30%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem; ">
-                FALTAS JUSTIFICADAS
-        </td>
-        <td width="30%" style="border: 1px solid #000000; text-align: center; font-size: 7rem;">
-               $justified_absences
-        </td>
-        <td width="20%" style="border: 1px solid #000000; text-align: center; font-size: 7rem; font-weight: bold;">
-                ATRASOS JUSTIFICADOS
-        </td>
-        <td width="20%" style="border: 1px solid #000000; text-align: center; font-size: 7rem;">
-                $justified_delays
-        </td>
-    </tr>
-    EOD;
-
-    $tableGrade .= <<<EOD
-    </table>
-    EOD;
-
-    $tableGrade .= <<<EOD
-    <br><br>
-    <table style="width: 100%; border-collapse: collapse;">
-    EOD;
-
-    $criterio1 = get_string('comportamental_scale_s', 'local_reportesnavarra');
-    $criterio2 = get_string('comportamental_scale_f', 'local_reportesnavarra');
-    $criterio3 = get_string('comportamental_scale_o', 'local_reportesnavarra');
-    $criterio4 = get_string('comportamental_scale_n', 'local_reportesnavarra');
-    $tableGrade .= <<<EOD
-    <tr>
-        <td width="100%" style="border: 1px solid #000000; text-align: center; font-weight: bold; font-size: 7rem;">
-                PARÁMETROS DE CONDUCTA
-        </td>
-    </tr>
-    <tr>
-        <td width="30%" style="border: 1px solid #000000; text-align: left; font-weight: bold; font-size: 7rem; padding: 80px;">S - SIEMPRE</td>
-        <td width="70%" style="border: 1px solid #000000; text-align: left;  font-size: 7rem; padding: 80px;">$criterio1</td>
-    </tr>
-     <tr>
-        <td width="30%" style="border: 1px solid #000000; text-align: left; font-weight: bold; font-size: 7rem; padding: 80px;">F - FRECUENTEMENTE</td>
-        <td width="70%" style="border: 1px solid #000000; text-align: left;  font-size: 7rem; padding: 80px;">$criterio2</td>
-    </tr>
-     <tr>
-        <td width="30%" style="border: 1px solid #000000; text-align: left; font-weight: bold; font-size: 7rem; padding: 80px;">O - OCASIONALMENTE</td>
-        <td width="70%" style="border: 1px solid #000000; text-align: left;  font-size: 7rem; padding: 80px;">$criterio3</td>
-    </tr>
-     <tr>
-        <td width="30%" style="border: 1px solid #000000; text-align: left; font-weight: bold; font-size: 7rem; padding: 80px;">N - NUNCA</td>
-        <td width="70%" style="border: 1px solid #000000; text-align: left;  font-size: 7rem; padding: 80px;">$criterio4</td>
-    </tr>
-   
-    EOD;
-
-    $tableGrade .= <<<EOD
-    </table><br><br><br><br><br><br>
-    EOD;
-    $signature = get_config('local_reportesnavarra', 'signature');
-    $tableGrade .= <<<EOD
-    <tr>
-        <td style="border: none; text-align: center; padding-top: 30px; width: 45%;">
-            <!-- Línea de firma 1 -->
-            <div style="width: 200px; border-top: 2px solid #000000; margin-left: auto; margin-right: auto;">
-                <div style="text-align: center; font-size: 10px; padding-top: 5px;">$signature</div>
-            </div>
-        </td>
-        <td style="border: none; text-align: center; padding-top: 30px; width: 10%;">&nbsp;</td> <!-- Celda para separación -->
-        <td style="border: none; text-align: center; padding-top: 30px; width: 45%;">
-            <!-- Línea de firma 2 -->
-            <div style="width: 200px; border-top: 2px solid #000000; margin-left: auto; margin-right: auto;">
-                <div style="text-align: center; font-size: 10px; padding-top: 5px;">$profesionalTitle $teacherName</div>
-            </div>
-        </td>
-    </tr>
-EOD;
-
-
-
-    $pdf->writeHTML($tableGrade, true, false, false, false, '');
-
-
-
-    $tableComplete = "";
-    $pdf->writeHTML($tableComplete, true, false, false, false, '');
-    //Close and output PDF document
-    // $pdf->Output($studentName, 'F');
-
-    $zipFilename = $pdfDir . 'archivos_pdfs.zip';
-    $pdfFilename = $pdfDir."temp_pdf_$studentName.pdf";
-    $pdf->Output($pdfFilename, 'F'); // Guardar el PDF en el sistema de archivos
-    $pdfFiles[] = $pdfFilename; // Guardar el nombre del archivo en el array
-
-    $zip->addFile($pdfFilename, basename($pdfFilename)); // Agregar al ZIP
-
-    // Cerrar el archivo ZIP
-    $zip->close();
-
+    
+    
+    
+        $pdf->writeHTML($tableGrade, true, false, false, false, '');
+    
+    
+    
+        $tableComplete = "";
+        $pdf->writeHTML($tableComplete, true, false, false, false, '');
+        //Close and output PDF document
+        // $pdf->Output($studentName, 'F');
+    
+        // $zipFilename = $pdfDir . 'archivos_pdfs.zip';
+     
+        $pdfFilename = $pdfDir."$studentName.pdf";
+        $pdf->Output($pdfFilename, 'F'); // Guardar el PDF en el sistema de archivos
+        
+        $pdfFiles[] = $zipFilename; // Guardar el nombre del archivo en el array
+        $pdfFiles[] = $pdfFilename; // Guardar el nombre del archivo en el array
+        $zip->addFile($pdfFilename, basename($pdfFilename)); // Agregar al ZIP
+    
+        // Cerrar el archivo ZIP
+        $zip->close();
+    
+       
+        
+    }
     // Forzar la descarga del ZIP
     header('Content-Type: application/zip');
     header('Content-Disposition: attachment; filename="' . $zipFilename . '"');
@@ -1794,7 +1814,10 @@ EOD;
 
     // Eliminar los archivos temporales
     foreach ($pdfFiles as $file) {
+        echo $file;
         unlink($file);
     }
-    unlink($zipFilename);
+    die;
+    // unlink($zipFilename);
+    
 }

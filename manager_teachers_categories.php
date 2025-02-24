@@ -43,7 +43,7 @@ $PAGE->navbar->add('Asignación de profesores a categorías', new moodle_url('/l
 $mform = new local_reportesnavarra_manager_users_categories_form(); 
 $isadmin = is_siteadmin();
 
-if ($isadmin || has_capability('local/reportesnavarra:administration_teacher_categories', context_system::instance())) {
+if ($isadmin || has_capability('local/reportesnavarra:administration_register_teacher', context_system::instance())) {
 
     // Si el formulario es enviado y validado.
     if ($mform->is_submitted() && $mform->is_validated()) {

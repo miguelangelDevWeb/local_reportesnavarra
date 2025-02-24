@@ -39,7 +39,7 @@ $PAGE->set_context($context);
 $PAGE->set_url(new moodle_url('/local/reportesnavarra/index.php'));
 $PAGE->set_title(get_string('form_title_manager_categories', 'local_reportesnavarra'));
 
-$PAGE->navbar->add(get_string('list_categories', 'local_reportesnavarra'), new moodle_url('/local/reportesnavarra/view_category.php'));
+$PAGE->navbar->add(get_string('pluginname', 'local_reportesnavarra'), new moodle_url('/local/reportesnavarra/index.php'));
 $PAGE->navbar->add('Asignación de profesores a categorías', new moodle_url('/local/reportesnavarra/manager_teachers_categories.php'));
 
 $mform = new local_reportesnavarra_manager_users_categories_form(); 

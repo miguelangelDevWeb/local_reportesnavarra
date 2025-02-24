@@ -35,7 +35,19 @@ $capabilities = [
         'captype' => 'read',
         'contextlevel' => CONTEXT_COURSE,
         'archetypes' => [
-            'student' => CAP_ALLOW, // Permitido por defecto para estudiantes
+            'student' => CAP_ALLOW,
+             // Permitido por defecto para estudiantes
+        ],
+    ],
+
+    'local/reportesnavarra:downloadallcertificates' => [
+        'riskbitmask' => RISK_PERSONAL,
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => [
+            'manager' => CAP_ALLOW, // Permitido por defecto para managers
+            'teacher' => CAP_ALLOW,
+             // Permitido por defecto para estudiantes
         ],
     ],
 
@@ -46,24 +58,19 @@ $capabilities = [
         'contextlevel' => CONTEXT_COURSECAT,
         'archetypes' => [
             'manager' => CAP_ALLOW, // Permitido por defecto para managers
+            'teacher' => CAP_ALLOW,
+
         ],
     ],
 
-    // Permiso para acceder a la vista de administración
-    'local/reportesnavarra:administration' => [
-        'riskbitmask' => RISK_PERSONAL,
-        'captype' => 'write',
-        'contextlevel' => CONTEXT_SYSTEM,
-        'archetypes' => [
-            'manager' => CAP_ALLOW,
-        ],
-    ],
     'local/reportesnavarra:administration_users_categories' => [
         'riskbitmask' => RISK_PERSONAL,
         'captype' => 'write',
         'contextlevel' => CONTEXT_SYSTEM,
         'archetypes' => [
             'manager' => CAP_ALLOW,
+            'teacher' => CAP_PROHIBIT,
+
         ],
     ],
     'local/reportesnavarra:administration_register_attendance' => [
@@ -72,14 +79,17 @@ $capabilities = [
         'contextlevel' => CONTEXT_SYSTEM,
         'archetypes' => [
             'manager' => CAP_ALLOW,
+            'teacher' => CAP_ALLOW,
         ],
     ],
-    'local/reportesnavarra:gestor_register_attendance' => [
+    'local/reportesnavarra:view_list_attendance' => [
         'riskbitmask' => RISK_PERSONAL,
         'captype' => 'write',
         'contextlevel' => CONTEXT_SYSTEM,
         'archetypes' => [
-            'teacher' => CAP_PROHIBIT,
+            'manager' => CAP_ALLOW,
+            'teacher' => CAP_ALLOW,
+
         ],
         
     ],
@@ -88,7 +98,9 @@ $capabilities = [
         'captype' => 'write',
         'contextlevel' => CONTEXT_SYSTEM,
         'archetypes' => [
-            'teacher' => CAP_PROHIBIT,
+            'teacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW,
+
         ],
         
     ]
